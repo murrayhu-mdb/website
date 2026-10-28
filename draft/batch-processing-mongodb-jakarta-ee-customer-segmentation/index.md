@@ -19,10 +19,10 @@ In this tutorial, you'll:
 - Model and interact with MongoDB using Java.
 - Build a batch workflow with Jakarta Faces Flow and Jakarta Batch to preview and apply customer reclassification rules.
 
-You can find all the code presented in this tutorial in the GitHub repository:
+You can find all the code presented in this tutorial in the GitHub repository. To clone it, run:
 
 ```bash
-git@github.com:soujava/mongodb-jakarta-batch.git
+git clone git@github.com:soujava/mongodb-jakarta-batch.git
 ```
 
 ## Prerequisites
@@ -382,6 +382,10 @@ public class CustomerItemReader extends AbstractItemReader {
             throw new IllegalArgumentException("Invalid customer reader checkpoint: " + nextIndex);
         }
 
+        // Note: This demonstration loads all customers into memory and resumes by index.
+        // In production, for restart reliability across data changes, consider pagination
+        // or cursor-based access keyed to stable customer identity rather than array position.
+
         LOGGER.info(() -> "Customer reader opened: total=%d, nextIndex=%d"
                 .formatted(customers.size(), nextIndex));
     }
@@ -538,7 +542,7 @@ The diagram below shows the batch working and the process working:
 - `CustomerTierProcessor` processes each customer and determines the appropriate tier based on the configured thresholds.
 - If the tier remains unchanged, the processor returns null, excluding that customer from the write phase.
 - If the tier changes, the updated customer is included in the current chunk.
-- The job is configured with `item-count="20"`, so Jakarta Batch processes and groups up to 20 changed items before invoking the writer for that chunk.
+- The job is configured with `item-count="20"`, so Jakarta Batch reads and processes up to 20 input customers before invoking the writer for that chunk. Because the processor filters out unchanged customers, the writer may receive fewer than 20 items per chunk.
 - `CustomerItemWriter` saves the changed customers to MongoDB during the write phase.
 - Jakarta Batch repeats the read, process, and write cycle for each chunk until all customers are processed.
 
